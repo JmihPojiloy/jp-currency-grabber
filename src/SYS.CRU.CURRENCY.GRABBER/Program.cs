@@ -38,7 +38,7 @@ public static class Program
             }
         );
         
-        using CancellationTokenSource cancellationTokenSource = new(TimeSpan.FromMinutes(5));
+        using CancellationTokenSource cancellationTokenSource = new(TimeSpan.FromMinutes(1));
         var token = cancellationTokenSource.Token;
         
         await Console.Out.WriteLineAsync("Configuration complete.");

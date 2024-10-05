@@ -48,10 +48,10 @@ public class DownloadService
         }
         catch (HttpRequestException ex)
         {
-            var log = new Log($"GET Currency rates => [{url} {ex.Message}]", " --- DOWNLOAD ERROR.");
+            var log = new Log($"GET Currency rates => [{url} {ex.Message}]", " --- NEXT TRY!.");
             await Logger.AddLogAsync(log).ConfigureAwait(false);
 
-            await Task.Delay(5000, token).ConfigureAwait(false);
+            await Task.Delay(10000, token).ConfigureAwait(false);
             await DownloadAsync(url, token).ConfigureAwait(false);
         }
         catch (TaskCanceledException)

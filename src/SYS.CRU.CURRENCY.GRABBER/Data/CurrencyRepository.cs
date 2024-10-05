@@ -82,9 +82,9 @@ public class CurrencyRepository
         }
         catch (NullReferenceException ex)
         {
-            var log = new Log($"Get currency from DB => [{ex.Message}]", " --- ERROR.");
+            var log = new Log($"Get currency from DB => [{ex.Message}]", " --- NEXT TRY!.");
             await Logger.AddLogAsync(log).ConfigureAwait(false);
-            await Task.Delay(5000, token).ConfigureAwait(false);
+            await Task.Delay(10000, token).ConfigureAwait(false);
             await GetAllCurrenciesByIdAsync(currency, token).ConfigureAwait(false);
         }
         catch(Exception ex)
@@ -158,10 +158,10 @@ public class CurrencyRepository
         {
             foreach (var error in ex.Errors)
             {
-                var log = new Log($"Update currency from DB => [{ex.Message}, {error}] ", " --- ERROR.");
+                var log = new Log($"Update currency from DB => [{ex.Message}, {error}] ", " --- NEXT TRY!.");
                 await Logger.AddLogAsync(log).ConfigureAwait(false);
             }
-            await Task.Delay(5000, token).ConfigureAwait(false);
+            await Task.Delay(10000, token).ConfigureAwait(false);
             await UpdateCurrenciesAsync(currencies, token).ConfigureAwait(false);
         }
         catch (Exception ex)
