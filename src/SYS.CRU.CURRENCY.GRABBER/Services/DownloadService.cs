@@ -21,7 +21,7 @@ public class DownloadService
     /// <param name="url">Ссылка на api банка.</param>
     /// <param name="token">Заданное время.</param>
     /// <returns>XML документ со всеми предоставляемыми курсами валют, либо null.</returns>
-    /// <exception cref="HttpRequestException">При этой ошибке повторный запуск метода с интервалом 5 секунд.</exception>
+    /// <exception cref="HttpRequestException">При этой ошибке повторный запуск метода с интервалом 10 секунд.</exception>
     /// <exception cref="OperationCanceledException">Заданное время истекло.</exception>
     public async Task<XmlDocument> DownloadAsync(string url, CancellationToken token)
     {
@@ -41,14 +41,14 @@ public class DownloadService
             var document = new XmlDocument();
             document.LoadXml(content);
 
-            var log = new Log($"GET Currency rates => [{url}] ", " --- DOWNLOAD SUCCESS.");
+            var log = new Log($"GET rates => [{url}] ", "OK");
             await Logger.AddLogAsync(log).ConfigureAwait(false);
 
             return document;
         }
         catch (HttpRequestException ex)
         {
-            var log = new Log($"GET Currency rates => [{url} {ex.Message}]", " --- NEXT TRY!.");
+            var log = new Log($"GET rates => [{url} {ex.Message}]", "NEXT TRY!");
             await Logger.AddLogAsync(log).ConfigureAwait(false);
 
             await Task.Delay(10000, token).ConfigureAwait(false);
@@ -60,12 +60,12 @@ public class DownloadService
         }
         catch (OperationCanceledException)
         {
-            var log = new Log($"GET Currency rates => [{url} canceled, time is up!]", " --- DOWNLOAD ERROR.");
+            var log = new Log($"GET rates => [{url} canceled, time is up!]", "ERROR");
             await Logger.AddLogAsync(log).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            var log = new Log($"GET Currency rates => [{url} {ex.Message}]", " --- DOWNLOAD ERROR.");
+            var log = new Log($"GET rates => [{url} {ex.Message}]", "ERROR");
             await Logger.AddLogAsync(log).ConfigureAwait(false);
         }
         

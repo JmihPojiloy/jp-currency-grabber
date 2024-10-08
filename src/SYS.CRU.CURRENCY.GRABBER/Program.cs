@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Configuration;
+using SYS.CRU.CURRENCY.GRABBER.Helpers;
 using SYS.CRU.CURRENCY.GRABBER.Loggers;
 using SYS.CRU.CURRENCY.GRABBER.Services;
 
@@ -11,7 +12,7 @@ public static class Program
     private static IConfiguration? _configuration;
     private static string? _connectionString;
     private static string? _proxy;
-    private static Dictionary<string, string>? _exchangeRatesDictionary;
+    private static List<string>? _exchangeRates;
     
     public static async Task Main()
     {
@@ -22,21 +23,23 @@ public static class Program
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
         
         _configuration = builder.Build();
-        
-        _connectionString = _configuration.GetConnectionString("DefaultConnection");
-        _proxy = _configuration["Proxy"];
-        
-        var updatedExchangeRates = _configuration.GetSection("UpdatedExchangeRates").GetChildren();
 
-        _exchangeRatesDictionary = updatedExchangeRates.ToDictionary(
-            x => x.GetValue<string>("currency"),
-            x =>
-            {
-                var url = x.GetValue<string>("url");
-                var formattedDate = DateTime.Now.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture);
-                return string.Format(url, formattedDate);
-            }
-        );
+        var connectionStringBuilder = new ConnectionStringBuilder(_configuration);
+        var connectionName = _configuration.
+            GetSection("ConnectionStrings")
+            .GetChildren()
+            .FirstOrDefault()?.Key;
+
+        if (connectionName is null)
+        {
+            await Console.Out.WriteLineAsync("No connection string found.");
+            return;
+        }
+        
+        _connectionString = connectionStringBuilder.GetConnectionString(connectionName!);
+        _proxy = _configuration["Proxy"];
+
+        _exchangeRates = _configuration.GetSection("UpdatedExchangeRates").Get<List<string>>();
         
         using CancellationTokenSource cancellationTokenSource = new(TimeSpan.FromMinutes(1));
         var token = cancellationTokenSource.Token;
@@ -45,8 +48,8 @@ public static class Program
         
         var stopWatch = Stopwatch.StartNew();
         
-        var currencyServices = _exchangeRatesDictionary
-            .Select(kvp => new CurrencyService(kvp.Key, kvp.Value, _connectionString, _proxy, token))
+        var currencyServices = _exchangeRates
+            .Select(currencyCode => new CurrencyService(currencyCode, _connectionString, _proxy, token))
             .ToArray();
         
         var executions = currencyServices.Select(service => service.Execute());
@@ -59,6 +62,6 @@ public static class Program
         await Logger.SaveLogsAsync();
         
         await Console.Out.WriteLineAsync(
-            $@"[DESCRIPTION] updated {{{count}/{updatedExchangeRates.Count()}}} time {stopWatch.Elapsed:hh\:mm\:ss}.");
+            $@"[DESCRIPTION] updated {{{count}/{_exchangeRates.Count()}}} time {stopWatch.Elapsed:hh\:mm\:ss}.");
     }
 }

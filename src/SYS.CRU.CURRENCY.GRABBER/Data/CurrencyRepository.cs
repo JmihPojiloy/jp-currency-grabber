@@ -57,8 +57,9 @@ public class CurrencyRepository
 
                         currencyDtos.Add(currencyDto);
 
-                        var log = new Log($"Get currency from DB => [{currencyDto.BCurrencyID} - {currencyDto.TCurrencyID}]",
-                            " --- SUCCESS.");
+                        var log = 
+                            new Log(
+                                $"Get {currency} from DB => [{currencyDto.BCurrencyID} - {currencyDto.TCurrencyID}]", "OK");
                         await Logger.AddLogAsync(log);
                     }
                 }
@@ -77,19 +78,19 @@ public class CurrencyRepository
         }
         catch (OperationCanceledException)
         {
-            var log = new Log($"Get currency from DB => [time is up]", " --- ERROR.");
+            var log = new Log($"Get {currency} from DB => [time is up]", "ERROR");
             await Logger.AddLogAsync(log).ConfigureAwait(false);
         }
         catch (NullReferenceException ex)
         {
-            var log = new Log($"Get currency from DB => [{ex.Message}]", " --- NEXT TRY!.");
+            var log = new Log($"Get {currency} from DB => [{ex.Message}]", "NEXT TRY");
             await Logger.AddLogAsync(log).ConfigureAwait(false);
             await Task.Delay(10000, token).ConfigureAwait(false);
             await GetAllCurrenciesByIdAsync(currency, token).ConfigureAwait(false);
         }
         catch(Exception ex)
         {
-            var log = new Log($"Get currency from DB => [{ex.Message}]", " --- ERROR.");
+            var log = new Log($"Get {currency} from DB => [{ex.Message}]", "ERROR");
             await Logger.AddLogAsync(log).ConfigureAwait(false);
             return null!;
         }
@@ -104,9 +105,11 @@ public class CurrencyRepository
     /// <param name="currencies">Коллекция обновленных валют.</param>
     public async Task UpdateCurrenciesAsync(Currency[] currencies, CancellationToken token)
     {
+        var currency = currencies[0].BCurrencyID;
         var currenciesDtos = currencies.Select(Currency.Mapper.Map).ToImmutableArray();
 
         await using OdbcConnection db = new(_connectionString);
+
         try
         {
             await db.OpenAsync(token);
@@ -116,7 +119,8 @@ public class CurrencyRepository
             CREATE TABLE #TempCurrencyUpdates (
                 BCurrencyID CHAR(3),
                 TCurrencyID CHAR(3),
-                Rate MONEY
+                Rate MONEY,
+                Updated DATETIME
             )";
 
             await using var createTableCmd = new OdbcCommand(createTempTableQuery, db);
@@ -126,8 +130,8 @@ public class CurrencyRepository
             foreach (var currencyDto in currenciesDtos)
             {
                 string insertQuery = @"
-                INSERT INTO #TempCurrencyUpdates (BCurrencyID, TCurrencyID, Rate) 
-                VALUES (?, ?, ?)";
+                INSERT INTO #TempCurrencyUpdates (BCurrencyID, TCurrencyID, Rate, Updated) 
+                VALUES (?, ?, ?, GETDATE())";
             
                 await using var insertCmd = new OdbcCommand(insertQuery, db);
                 insertCmd.Parameters.AddWithValue("@BCurrencyID", currencyDto?.BCurrencyID);
@@ -149,7 +153,7 @@ public class CurrencyRepository
         }
         catch (OperationCanceledException)
         {
-            var log = new Log($"Update DB => [time is up]", " --- ERROR.");
+            var log = new Log($"Update {currency} from DB => [time is up]", "ERROR");
             await Logger.AddLogAsync(log).ConfigureAwait(false);
 
             throw;
@@ -158,7 +162,7 @@ public class CurrencyRepository
         {
             foreach (var error in ex.Errors)
             {
-                var log = new Log($"Update currency from DB => [{ex.Message}, {error}] ", " --- NEXT TRY!.");
+                var log = new Log($"Update {currency} from DB => [{ex.Message}, {error}] ", "NEXT TRY");
                 await Logger.AddLogAsync(log).ConfigureAwait(false);
             }
             await Task.Delay(10000, token).ConfigureAwait(false);
@@ -166,7 +170,7 @@ public class CurrencyRepository
         }
         catch (Exception ex)
         {
-            var log = new Log($"Update currency from DB => [{ex.Message}] ", " --- ERROR.");
+            var log = new Log($"Update {currency} from DB => [{ex.Message}] ", "ERROR");
             await Logger.AddLogAsync(log).ConfigureAwait(false);
 
             throw;

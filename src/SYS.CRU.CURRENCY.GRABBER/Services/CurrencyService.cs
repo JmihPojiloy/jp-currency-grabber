@@ -9,22 +9,20 @@ public class CurrencyService
 {
     private readonly string _currencyCode;
     private readonly string _connectionString;
-    private readonly string _url;
     private readonly HttpClient _httpClient;
     private readonly DownloadService _downloadService;
-    private readonly ParseService _parseService;
+    private readonly ParserFactory _parserFactory;
     private readonly CurrencyRepository _currencyRepository;
     private readonly CancellationToken _token;
 
-    public CurrencyService(string currencyCode, string url, string connectionString, string proxy, CancellationToken token)
+    public CurrencyService(string currencyCode,string connectionString, string proxy, CancellationToken token)
     {
         _currencyCode = currencyCode;
         _connectionString = connectionString;
-        _url = url;
 
         _httpClient = HttpService.GetHttpClient(proxy);
         _downloadService = new DownloadService(_httpClient);
-        _parseService = new ParseService();
+        _parserFactory = new ParserFactory(_downloadService, token);
         _currencyRepository = new CurrencyRepository(_connectionString);
         
         _token = token;
@@ -39,15 +37,14 @@ public class CurrencyService
     {
         try
         {
-            var downloadTask = _downloadService.DownloadAsync(_url, _token);
             var currenciesTask = _currencyRepository.GetAllCurrenciesByIdAsync(_currencyCode, _token);
+            
+            await Task.WhenAll(currenciesTask);
 
-            await Task.WhenAll(downloadTask, currenciesTask);
-
-            var update = await downloadTask;
+            var parser = _parserFactory.GetParserAsync(_currencyCode);
             var currencies = await currenciesTask;
 
-            var updateCurrencies = await _parseService.GetCurrenciesAsync(_currencyCode, update, currencies);
+            var updateCurrencies = await parser.ParseAsync(currencies);
             if (updateCurrencies is null)
             {
                 throw new ArgumentNullException($"Currency not supported.");
@@ -55,21 +52,21 @@ public class CurrencyService
 
             await _currencyRepository.UpdateCurrenciesAsync(updateCurrencies, _token);
 
-            var log = new Log($"Update => {_currencyCode} currency ", " --- EXCELLENT.");
+            var log = new Log($"UPDATE => {_currencyCode} currency ", "OK");
             await Logger.AddLogAsync(log).ConfigureAwait(false);
 
             return true;
         }
         catch (ArgumentNullException ex)
         {
-            var log = new Log($"Update => {_currencyCode} currency {ex.Message}", " --- ERROR.");
+            var log = new Log($"UPDATE => {_currencyCode} currency {ex.Message}", "ERROR");
             await Logger.AddLogAsync(log).ConfigureAwait(false);
             
             return false;
         }
         catch (Exception ex)
         {
-            var log = new Log($"Update => {_currencyCode} currency {ex.Message}", " --- ERROR.");
+            var log = new Log($"Update => {_currencyCode} currency {ex.Message}", "ERROR");
             await Logger.AddLogAsync(log).ConfigureAwait(false);
             
             return false;
