@@ -15,6 +15,9 @@ public class CurrencyService
     private readonly CurrencyRepository _currencyRepository;
     private readonly CancellationToken _token;
 
+    public int InCount { get; private set; } = 0;
+    public int OutCount { get; private set; } = 0;
+
     public CurrencyService(string currencyCode,string connectionString, string proxy, CancellationToken token)
     {
         _currencyCode = currencyCode;
@@ -38,18 +41,22 @@ public class CurrencyService
         try
         {
             var currenciesTask = _currencyRepository.GetAllCurrenciesByIdAsync(_currencyCode, _token);
-            
+
             await Task.WhenAll(currenciesTask);
 
             var parser = _parserFactory.GetParserAsync(_currencyCode);
             var currencies = await currenciesTask;
 
+            InCount += currencies.Length;
+            
             var updateCurrencies = await parser.ParseAsync(currencies);
             if (updateCurrencies is null)
             {
                 throw new ArgumentNullException($"Currency not supported.");
             }
-
+            
+            OutCount += updateCurrencies.Length;
+            
             await _currencyRepository.UpdateCurrenciesAsync(updateCurrencies, _token);
 
             var log = new Log($"UPDATE => {_currencyCode} currency ", "OK");

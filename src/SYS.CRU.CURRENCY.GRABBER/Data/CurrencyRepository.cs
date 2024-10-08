@@ -56,11 +56,6 @@ public class CurrencyRepository
                             .Build();
 
                         currencyDtos.Add(currencyDto);
-
-                        var log = 
-                            new Log(
-                                $"Get {currency} from DB => [{currencyDto.BCurrencyID} - {currencyDto.TCurrencyID}]", "OK");
-                        await Logger.AddLogAsync(log);
                     }
                 }
             }
@@ -69,6 +64,10 @@ public class CurrencyRepository
             {
                 throw new NullReferenceException("No currencies found.");
             }
+            
+            var tCurrenciesId = string.Join(", ", currencyDtos.Select(x => x.TCurrencyID));
+            var log = new Log($"Get {currency} from DB => [{tCurrenciesId}]", "OK");
+            await Logger.AddLogAsync(log);
             
             result = currencyDtos.Select(Currency.Mapper.Map).ToArray()!;
         }

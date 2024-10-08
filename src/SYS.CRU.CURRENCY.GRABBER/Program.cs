@@ -55,13 +55,14 @@ public static class Program
         var executions = currencyServices.Select(service => service.Execute());
         var result = await Task.WhenAll(executions);
 
-        var count = result.Count(r => r == true);
+        var countIn = currencyServices.Select(c => c.InCount);
+        var countOut = currencyServices.Select(c => c.OutCount);
         
         stopWatch.Stop();
 
         await Logger.SaveLogsAsync();
         
         await Console.Out.WriteLineAsync(
-            $@"[DESCRIPTION] updated {{{count}/{_exchangeRates.Count()}}} time {stopWatch.Elapsed:hh\:mm\:ss}.");
+            $@"[DESCRIPTION] updated {{{countIn}/{countOut}}} time {stopWatch.Elapsed:hh\:mm\:ss}.");
     }
 }
