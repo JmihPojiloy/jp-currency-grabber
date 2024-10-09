@@ -145,6 +145,9 @@ public class CurrencyRepository
             cmd.CommandType = CommandType.StoredProcedure;
 
             await cmd.ExecuteNonQueryAsync(token);
+            
+            var log = new Log($"Update {currency} from DB", "OK");
+            await Logger.AddLogAsync(log).ConfigureAwait(false);
         }
         catch (TaskCanceledException)
         {

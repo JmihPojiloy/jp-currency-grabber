@@ -59,23 +59,14 @@ public class CurrencyService
             
             await _currencyRepository.UpdateCurrenciesAsync(updateCurrencies, _token);
 
-            var log = new Log($"UPDATE => {_currencyCode} currency ", "OK");
-            await Logger.AddLogAsync(log).ConfigureAwait(false);
-
             return true;
         }
         catch (ArgumentNullException ex)
         {
-            var log = new Log($"UPDATE => {_currencyCode} currency {ex.Message}", "ERROR");
-            await Logger.AddLogAsync(log).ConfigureAwait(false);
-            
             return false;
         }
         catch (Exception ex)
         {
-            var log = new Log($"Update => {_currencyCode} currency {ex.Message}", "ERROR");
-            await Logger.AddLogAsync(log).ConfigureAwait(false);
-            
             return false;
         }
     }
